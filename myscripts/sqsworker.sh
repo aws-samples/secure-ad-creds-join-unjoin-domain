@@ -302,7 +302,7 @@ while sleep 5; do
 
   fi
 
-  JSON=$(aws sqs --output=json receive-message --queue-url $SQSQUEUE)
+  JSON=$(aws sqs --output=json receive-message --queue-url $SQSQUEUE --max-number-of-messages 1)
   RECEIPT=$(echo "$JSON" | jq -r '.Messages[] | .ReceiptHandle')
   BODY=$(echo "$JSON" | jq -r '.Messages[] | .Body')
 

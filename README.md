@@ -1,4 +1,4 @@
-## My Project
+## Securing AS Credentials during domain join and unjoin process
 
 TODO: Fill this README out!
 
