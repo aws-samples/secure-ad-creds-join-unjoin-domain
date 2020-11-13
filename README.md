@@ -1,4 +1,4 @@
-## Securing AS Credentials during domain join and unjoin process
+## Securing Active Directory Credentials during domain join and unjoin process
 
 TODO: Fill this README out!
 
