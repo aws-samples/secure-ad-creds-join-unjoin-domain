@@ -209,6 +209,8 @@ fi
 
 function join_linux_to_domain()
 {
+  # Naming conventions in Active Directory
+  # https://support.microsoft.com/en-us/help/909264/naming-conventions-in-active-directory-for-computers-domains-sites-and
  RANDOM_COMPUTER_NAME=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 6 | head -n 1)
  comp_name=$(echo EC2AMAZ-$RANDOM_COMPUTER_NAME | tr 'a-z' 'A-Z')
  getosuser
