@@ -1,0 +1,1 @@
+Download the required softares in the "softwares" folder here
