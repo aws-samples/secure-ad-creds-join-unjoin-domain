@@ -1,11 +1,11 @@
 {
-"AMAZON_LINUX": "ec2-user",
-"FEDORA": "fedora",
-"RHEL": "ec2-user",
-"CENTOS": "centos",
-"UBUNTU": "ubuntu",
-"DEBIAN": "admin",
-"SUSE": "ec2-user",
-"DEFAULT": "ec2-user",
-"WINDOWS": "Administrator"
+    "AMAZON_LINUX": "ec2-user",
+    "FEDORA": "fedora",
+    "RHEL": "ec2-user",
+    "CENTOS": "centos",
+    "UBUNTU": "ubuntu",
+    "DEBIAN": "admin",
+    "SUSE": "ec2-user",
+    "DEFAULT": "ec2-user",
+    "WINDOWS": "Administrator"
 }

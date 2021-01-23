@@ -12,25 +12,25 @@
                         "timezone": "UTC",
                         "timestamp_format": "%Y-%m-%d %H:%M:%S"
                     },
-					{
+                    {
                         "file_path": "C:\\ad-join-unjoin-solution\\adlog\\*userdata.log",
                         "log_group_name": "/ad-domain-join-solution/userdata/",
                         "timezone": "UTC",
                         "timestamp_format": "%Y-%m-%d %H:%M:%S"
                     },
-					{
+                    {
                         "file_path": "C:\\ad-join-unjoin-solution\\adlog\\*sqsworker_log.log",
                         "log_group_name": "/ad-domain-join-solution/sqsworker/",
                         "timezone": "UTC",
                         "timestamp_format": "%Y-%m-%d %H:%M:%S"
                     },
-					{
+                    {
                         "file_path": "C:\\ad-join-unjoin-solution\\adlog\\*refresh_script.log",
                         "log_group_name": "/ad-domain-join-solution/refreshscript/",
                         "timezone": "UTC",
                         "timestamp_format": "%Y-%m-%d %H:%M:%S"
                     },
-					{
+                    {
                         "file_path": "C:\\ad-join-unjoin-solution\\adlog\\*_unjoin.log",
                         "log_group_name": "/ad-domain-join-solution/adunjoin/",
                         "timezone": "UTC",
@@ -38,8 +38,7 @@
                     }
                 ]
             }
-			
         },
-		"endpoint_override": "vpce-XXXX"
+        "endpoint_override": "vpce-XXXX"
     }
 }

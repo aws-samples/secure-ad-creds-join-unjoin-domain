@@ -27,13 +27,12 @@ then
     mkdir -p ~/.ssh
 fi
 echo "IdentityFile $CONFIGDIR/sshkey.pem" > ~/.ssh/config
-
 echo "sqsworker: Starting sqs worker script at `date` " >> $logger
-while sleep 5; do
 
 ###########################################
-## Reading message from sqs $SQSQUEUE   ###
+## Reading message from SQSQUEUE   ########
 ########################################### 
+while sleep 5; do
 JSON=$(aws sqs --output=json get-queue-attributes --queue-url $SQSQUEUE --attribute-names ApproximateNumberOfMessages --endpoint-url $SQS_ENDPOINT_URL --region $REGION )
 MESSAGES=$(echo "$JSON" | jq -r '.Attributes.ApproximateNumberOfMessages')
    

@@ -1,5 +1,5 @@
 ##################################################
-## Define parameters #############################
+######## Define parameters #######################
 ##################################################
 $LOG_DIR =  "C:\ad-join-unjoin-solution\adlog"
 $WORKING_DIR= "C:\ad-join-unjoin-solution\adscripts"
@@ -19,9 +19,7 @@ $env:Path += ";C:\\Program Files\\Amazon\\AWSCLIV2\\"
 
 $ErrorActionPreference = 'Continue'
 Function LogWrite {
-    param(
-        [Parameter(Mandatory=$true)][String]$logstring
-    )    
+    param([Parameter(Mandatory=$true)][String]$logstring)    
     ((Get-Date).ToString() + " - " + $logstring ) | Out-File $SCRIPTLOG -Encoding ASCII  -Append 
 }
 
