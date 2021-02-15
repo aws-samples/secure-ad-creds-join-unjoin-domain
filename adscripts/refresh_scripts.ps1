@@ -77,29 +77,11 @@ $param2 = @"
 $host_in_ddb = aws dynamodb get-item --table-name $DDBTABLE --key $param1 --attributes-to-get "INSTANCEID" --region $REGION | jq -r '.Item.INSTANCEID.S' *>&1
    if ($host_in_ddb -eq $null)
    {
-    echo "adding enrty in table"
     aws dynamodb put-item --table-name $DDBTABLE --item $param2 --region $REGION
    }
-   else
-   {
-   echo "nothing to add"
-   }
 }
 
-$last_update_time = aws dynamodb get-item --table-name $DDBTABLE --key '{\"INSTANCEID\": {\"S\": \"DONOTDELETEME\"}}' --attributes-to-get "WHENCREATED" --region $REGION | jq -r '.Item.WHENCREATED.S' *>&1
-if ($last_update_time -eq $null)
-{
- $start_date = $(date)
- Import-Module ActiveDirectory
- $computers = Get-ADComputer -Filter 'whenCreated -le $start_date' -Properties whencreated , IPv4Address -Credential $credential -Server $ad_domain_name -AuthType 0 | Select Name , IPv4Address, whencreated
-}
-else
-{
- $start_date = $last_update_time
- Import-Module ActiveDirectory
- $computers = Get-ADComputer -Filter 'whenCreated -gt $start_date' -Properties whencreated , IPv4Address -Credential $credential -Server $ad_domain_name -AuthType 0 | Select Name , IPv4Address, whenCreated
-}
-
+$start_date = ''
 $secretvaluejson = Get-SECSecretValue -region $REGION -EndpointUrl $SECRETENDPOINT -SecretId $secrets_manager_secret_id
 $secretvalue = $secretvaluejson.SecretString | ConvertFrom-Json
 $ad_secret = $secretvalue.domain_password | ConvertTo-SecureString -AsPlainText -Force
@@ -108,6 +90,19 @@ $username = $secretvalue.domain_user
 $ad_username = $ad_domain_name.ToUpper() + "\" + $username
 $credential = New-Object System.Management.Automation.PSCredential($ad_username, $ad_secret)
 
+$last_update_time = aws dynamodb get-item --table-name $DDBTABLE --key '{\"INSTANCEID\": {\"S\": \"DONOTDELETEME\"}}' --attributes-to-get "WHENCREATED" --region $REGION | jq -r '.Item.WHENCREATED.S' *>&1
+if ($last_update_time -eq $null)
+{
+ $start_date = $(date)
+ $computers = Get-ADComputer -Filter 'whenCreated -le $start_date' -Properties whencreated , IPv4Address -Credential $credential -Server $ad_domain_name -AuthType 0 | Select Name , IPv4Address, whencreated
+}
+else
+{
+ $start_date = $last_update_time
+ #Import-Module ActiveDirectory
+ $computers = Get-ADComputer -Filter 'whenCreated -gt $start_date' -Properties whencreated , IPv4Address -Credential $credential -Server $ad_domain_name -AuthType 0 | Select Name , IPv4Address, whenCreated
+}
+
 echo $computers | foreach {
 $hostname = $_.Name ; $IPv4 =  $_.IPv4Address ; $whencreated = $_.whenCreated ;
 $instanceid = ''
@@ -115,7 +110,6 @@ $instanceid = aws ec2 describe-instances --region $REGION  --filter Name=private
 
 if ($hostname -or $IPv4 -and $instanceid)
   {
-   #echo $hostname $IPv4 $whencreated
    set_variables "$hostname" "$IPv4" "$instanceid" "$whencreated"
   }
 }
