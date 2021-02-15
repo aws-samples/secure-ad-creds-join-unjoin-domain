@@ -1,11 +1,7 @@
-## Securing Active Directory Credentials during domain join and unjoin process
+## Automating domain join and unjoin process for EC2 Instances with no internet access
 
-TODO: Fill this README out!
+This Repo contains AWS Cloudformation template and scripts to autmate the domain join/unjoin process for EC2 Instances with or without Internet access.
 
-Be sure to:
-
-* Change the title in this README
-* Edit your repository description on GitHub
 
 ## Security
 

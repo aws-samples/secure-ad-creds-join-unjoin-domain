@@ -45,7 +45,6 @@ RECEIPT=$(echo "$JSON" | jq -r '.Messages[] | .ReceiptHandle')
 BODY=$(echo "$JSON" | jq -r '.Messages[] | .Body')
 
 if [ -z "$RECEIPT" ]; then
-  #echo "sqsworker: Empty receipt. Something went wrong." >> $logger
   continue
 
 fi

@@ -1,9 +1,8 @@
 #!/bin/bash
 
 #########################################
-## Defining parameters ##
+## Defining parameters ##################
 #########################################
-#INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 INSTANCEID=$1
 PRIVATEIP=$2
 INSTANCESTATE=$3
@@ -34,13 +33,22 @@ else
   SSHKEYUSED='false'
 fi
 
+##################################################
+## Remove temp files #############################
+##################################################
+cleanup() { 
+ssh-keygen -R $PRIVATEIP
+rm -f ~/.ssh/*.old
+}
+
+trap cleanup EXIT
+
 #############################################################
 ## Fetch AD Credentials from Secrets Manager        #########
 #############################################################
 function fetch_ad_credential()
     {
         echo "join-unjoin: Fetching AD credentials from Secrets Manager" >> $logger
-		#instance_id="$1"
 		ad_secret=$(aws secretsmanager get-secret-value --region $REGION --endpoint-url $SECRET_ENDPOINT_URL --secret-id $SECRETID --query SecretString --output text | jq -r '"\(.domain_password)"' 2>/dev/null)
         ad_username=$( aws secretsmanager get-secret-value --region $REGION --endpoint-url $SECRET_ENDPOINT_URL --secret-id $SECRETID --query SecretString --output text | jq -r '"\(.domain_user)"' 2>/dev/null)
 		ad_domain_name=$(aws secretsmanager get-secret-value --region $REGION --endpoint-url $SECRET_ENDPOINT_URL --secret-id $SECRETID --query SecretString --output text | jq -r '"\(.domain_name)"' 2>/dev/null)
@@ -256,7 +264,8 @@ function encrypt_cred
 randompass=$(date +%s | sha256sum | base64 | head -c 20)
 echo $ad_secret | openssl enc -aes-256-cbc -md md5 -out /tmp/${INSTANCEID}_temp -salt -k $randompass
 echo $ad_secret | openssl enc -aes-256-cbc -md md5 -pbkdf2 -out /tmp/${INSTANCEID}_temppbk -salt -k $randompass
-scp -o StrictHostKeyChecking=no /tmp/${INSTANCEID}_temp* ec2-user@$PRIVATEIP:/tmp/
+ssh-keyscan -H $PRIVATEIP >> ~/.ssh/known_hosts
+scp /tmp/${INSTANCEID}_temp* ec2-user@$PRIVATEIP:/tmp/
 }
 
 ##################################################
@@ -297,7 +306,7 @@ function join_linux_to_domain()
 	  if [ $? -eq 0 ];then 
 		encrypt_cred
 		echo "join-unjoin: starting Linux script to add instance $INSTANCEID to AD domain" >> $logger  
-		response=$(ssh $instance_user@$PRIVATEIP -o StrictHostKeyChecking=no 'bash -s' < $WORKDIR/join_linux_to_AD.sh "$ad_username" "$randompass" "$ad_domain_name" "$dns_server1" "$dns_server2" "$comp_name" "$directory_ou" )
+		response=$(ssh $instance_user@$PRIVATEIP 'bash -s' < $WORKDIR/join_linux_to_AD.sh "$ad_username" "$randompass" "$ad_domain_name" "$dns_server1" "$dns_server2" "$comp_name" "$directory_ou" )
 		echo "join-unjoin: Bash script execution completed on remote Linux server" >> $logger
 		if  echo "$response" | grep -q "realm join successful"; then
 			echo "join-unjoin: Instance added to the domain: $response" >> $logger

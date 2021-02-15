@@ -332,12 +332,10 @@ install_components_without_internet() {
 setup_resolv_conf_and_dhclient_conf() {
     if [ ! -z "$DNS_IP_ADDRESS1" ] && [ ! -z "$DNS_IP_ADDRESS2" ]; then
         sudo mv /etc/resolv.conf /etc/resolv.conf.backup."$CURTIME"
-		#sudo touch /etc/resolv.conf
         sudo echo "search $DIRECTORY_NAME" > /tmp/resolv.conf
         sudo echo "nameserver $DNS_IP_ADDRESS1" >> /tmp/resolv.conf
         sudo echo "nameserver $DNS_IP_ADDRESS2" >> /tmp/resolv.conf
 		sudo cp -f /tmp/resolv.conf /etc/resolv.conf
-        #sudo touch /etc/dhcp/dhclient.conf
         sudo mv /etc/dhcp/dhclient.conf /etc/dhcp/dhclient.conf.backup."$CURTIME"
         sudo echo "supersede domain-name-servers $DNS_IP_ADDRESS1, $DNS_IP_ADDRESS2;" > /tmp/dhclient.conf
 		sudo cp -f /tmp/dhclient.conf /etc/dhcp/dhclient.conf

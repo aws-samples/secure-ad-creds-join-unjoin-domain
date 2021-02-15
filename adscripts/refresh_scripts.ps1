@@ -2,6 +2,7 @@
 ######## Define parameters #######################
 ##################################################
 $LOG_DIR =  "C:\ad-join-unjoin-solution\adlog"
+$TEMP_DIR =  "C:\ad-join-unjoin-solution\adtemp"
 $WORKING_DIR= "C:\ad-join-unjoin-solution\adscripts"
 $CONFIG_DIR = "C:\ad-join-unjoin-solution\config"
 $S3BUCKETNAME = get-content  $CONFIG_DIR\\sqsworker.conf | convertfrom-Json | select S3BUCKETNAME | foreach { $_.S3BUCKETNAME }
@@ -61,26 +62,40 @@ $check_bash_process = Get-Process -Name bash 2>&1 | out-null
 }
 
 function sync_dynamodb_with_AD_computers  {
+$computers = ''
 LogWrite "Sync Dynamodb with AD computer objects: Script execution started at $(date)"
-function set_variables ([string]$hostname, [string]$IPv4, [string]$instanceid)
+
+function set_variables ([string]$hostname, [string]$IPv4, [string]$instanceid, [string]$whencreated)
 {
 $param1 = @"
 {\"INSTANCEID\": {\"S\": \"$instanceid\"}}
 "@
 
 $param2 = @"
-{\"PRIVATEIP\": {\"S\": \"$IPv4\"} , \"HOSTNAME\": {\"S\": \"$hostname\"} , \"INSTANCEID\": {\"S\": \"$instanceid\"}}
+{\"PRIVATEIP\": {\"S\": \"$IPv4\"} , \"HOSTNAME\": {\"S\": \"$hostname\"} , \"INSTANCEID\": {\"S\": \"$instanceid\"} , \"WHENCREATED\": {\"S\": \"$whencreated\"} }
 "@
-$host_in_ddb = aws dynamodb get-item --table-name $DDBTABLE --key $param1 --attributes-to-get "INSTANCEID" --region $REGION | jq -r '.Item.INSTANCEID.S' *>&1 | Out-Null
+$host_in_ddb = aws dynamodb get-item --table-name $DDBTABLE --key $param1 --attributes-to-get "INSTANCEID" --region $REGION | jq -r '.Item.INSTANCEID.S' *>&1
    if ($host_in_ddb -eq $null)
    {
-    #echo "adding enrty in table"
+    echo "adding enrty in table"
     aws dynamodb put-item --table-name $DDBTABLE --item $param2 --region $REGION
    }
    else
    {
-   #echo "nothing to add"
+   echo "nothing to add"
    }
+}
+
+$last_update_time = aws dynamodb get-item --table-name $DDBTABLE --key '{\"INSTANCEID\": {\"S\": \"DONOTDELETEME\"}}' --attributes-to-get "WHENCREATED" --region $REGION | jq -r '.Item.WHENCREATED.S' *>&1
+if ($last_update_time -eq $null)
+{
+ $start_date = $(date)
+ $computers = Get-ADComputer -Filter 'whenCreated -le $start_date' -Properties whencreated , IPv4Address | Select Name , IPv4Address, whencreated
+}
+else
+{
+ $start_date = $last_update_time
+ $computers = Get-ADComputer -Filter 'whenCreated -gt $start_date' -Properties whencreated , IPv4Address | Select Name , IPv4Address, whenCreated
 }
 
 $secretvaluejson = Get-SECSecretValue -region $REGION -EndpointUrl $SECRETENDPOINT -SecretId $secrets_manager_secret_id
@@ -91,17 +106,22 @@ $username = $secretvalue.domain_user
 $ad_username = $ad_domain_name.ToUpper() + "\" + $username
 $credential = New-Object System.Management.Automation.PSCredential($ad_username, $ad_secret)
 
-Get-ADComputer -Filter * -Properties IPv4Address -Credential $credential -Server $ad_domain_name -AuthType 0 | Select Name , IPv4Address | foreach {
-$hostname = $_.Name ; $IPv4 =  $_.IPv4Address ;
+
+Get-ADComputer -Filter 'whenCreated -le $start_date' -Properties IPv4Address -Credential $credential -Server $ad_domain_name -AuthType 0 | Select Name , IPv4Address , whenCreated | foreach {
+$hostname = $_.Name ; $IPv4 =  $_.IPv4Address ; $whencreatd = $_.whenCreated ;
 $instanceid = ''
 $instanceid = aws ec2 describe-instances --region $REGION --endpoint-url $EC2_ENDPOINT_URL --filter Name=private-ip-address,Values=$IPv4 --query 'Reservations[].Instances[].InstanceId' --output text
 
 if ($hostname -or $IPv4)
   {
-   set_variables "$hostname" "$IPv4" "$instanceid"
+   set_variables "$hostname" "$IPv4" "$instanceid" "$whencreatd"
   }
 }
 
+$param2 = @"
+{\"WHENCREATED\": {\"S\": \"$(date)\"}, \"INSTANCEID\": {\"S\": \"DONOTDELETEME\"}}
+"@
+aws dynamodb put-item --table-name $DDBTABLE --item $param2 --region $REGION
 LogWrite "Sync Dynamodb with AD computer objects: Script execution completed at $(date)"
 
 }
@@ -115,6 +135,7 @@ LogWrite "refresh started at $(date)"
 sync_s3_scripts
 
 sync_dynamodb_with_AD_computers
+
 LogWrite "refresh completed at $(date)"
 cleanup_tempfile_logs
 exit 0
@@ -126,5 +147,6 @@ catch [Exception]{
 }
 finally {
 LogWrite $Error
+#rm $TEMP_DIR\\ddbsyntemp -Force 2>&1 | out-null
 $host.SetShouldExit(1)
 }

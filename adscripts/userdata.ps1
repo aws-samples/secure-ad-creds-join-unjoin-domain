@@ -1,5 +1,4 @@
-## Define parameters
-
+### Define parameters
 $CONFIG_DIR = "C:\ad-join-unjoin-solution\config"
 $LOG_DIR =  "C:\ad-join-unjoin-solution\adlog"
 $WORKING_DIR= "C:\ad-join-unjoin-solution\adscripts"
@@ -31,13 +30,13 @@ if ($awscli)
 {
 
  if ((Get-Command aws -ErrorAction SilentlyContinue) -eq $null) {
-        LogWrite  "installing aws cli" 
-        $command = "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12"
-        Invoke-Expression $command
-        $arguments = "/i `"$SOFTWAREPATH\$awscli`" /quiet"
-        Start-Process msiexec.exe -ArgumentList $arguments -Wait
-        setx /M PATH "$Env:PATH;C:\\Program Files\\Amazon\\AWSCLIV2\\"
-        LogWrite  "AWSCLI installation completed" 
+	LogWrite  "installing aws cli" 
+	$command = "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12"
+	Invoke-Expression $command
+	$arguments = "/i `"$SOFTWAREPATH\$awscli`" /quiet"
+	Start-Process msiexec.exe -ArgumentList $arguments -Wait
+	setx /M PATH "$Env:PATH;C:\\Program Files\\Amazon\\AWSCLIV2\\"
+	LogWrite  "AWSCLI installation completed" 
 }
 
 else
@@ -56,14 +55,14 @@ if ($gitexe)
 {
 
  if ((Get-Command git -ErrorAction SilentlyContinue) -eq $null) {
-        LogWrite  "installing git client and git bash" 
-        $command = "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12"
-        Invoke-Expression $command
-		cd $SOFTWAREPATH
-        $arguments = ".\"  + $gitexe
-        & $arguments /VERYSILENT /NORESTART /SUPPRESSMSGBOXES
-		setx /M PATH "$Env:PATH;C:\\Program Files\\Git\\"
-        LogWrite  "Git installation completed" 
+	LogWrite  "installing git client and git bash" 
+	$command = "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12"
+	Invoke-Expression $command
+	cd $SOFTWAREPATH
+	$arguments = ".\"  + $gitexe
+	& $arguments /VERYSILENT /NORESTART /SUPPRESSMSGBOXES
+	setx /M PATH "$Env:PATH;C:\\Program Files\\Git\\"
+	LogWrite  "Git installation completed" 
 }
 
 else
@@ -82,11 +81,11 @@ if ($jqexe)
 {
 
  if ((Get-Command jq -ErrorAction SilentlyContinue) -eq $null) {
-        LogWrite  "installing jq" 
-		cp "$SOFTWAREPATH\$jqexe" "C:\\Program Files\\jq.exe" -Force
-		setx /M PATH "$Env:PATH;C:\\Program Files\\"
-		cp "C:\\Program Files\\jq.exe" "C:\Program Files\Git\usr\bin\" -Force
-        LogWrite  "jq installation completed" 
+	LogWrite  "installing jq" 
+	cp "$SOFTWAREPATH\$jqexe" "C:\\Program Files\\jq.exe" -Force
+	setx /M PATH "$Env:PATH;C:\\Program Files\\"
+	cp "C:\\Program Files\\jq.exe" "C:\Program Files\Git\usr\bin\" -Force
+	LogWrite  "jq installation completed" 
 }
 
 else
@@ -165,8 +164,7 @@ $action = New-ScheduledTaskAction -Execute "C:\Windows\System32\WindowsPowerShel
 $STPrin = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType "S4U" -RunLevel Highest
 $trigger = @(
     $(Get-CimClass "MSFT_TaskRegistrationTrigger" -Namespace "Root/Microsoft/Windows/TaskScheduler"),
-    $(New-ScheduledTaskTrigger -AtStartup),
-	$(New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 5) ))
+    $(New-ScheduledTaskTrigger -AtStartup), $(New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 5) ))
 $Schedule = New-ScheduledTaskSettingsSet -Hidden:$True
 $task = New-ScheduledTask -Action $action  -Trigger $trigger  -Description "This is my description" -Settings $Schedule
 Register-ScheduledTask -TaskName "SqsWorkerTask" -Action $action -Trigger $trigger -Settings $Schedule -Principal $STPrin  -Force
@@ -205,26 +203,30 @@ git-bash.exe 'dos2unix $CONFIG_DIR\\sqsworker.conf'
 }
 
 function create_vpc_endpoints {
-	LogWrite "Creating VPC endpoints"
-	$metadata = 'http://169.254.169.254/latest/meta-data/network/interfaces/macs' 
-	$Interface = Invoke-WebRequest -Uri  $metadata// | Select-Object Content | foreach { $_.Content } 
-	$subnetid = Invoke-WebRequest -Uri  $metadata//$Interface//subnet-id | Select-Object Content | foreach { $_.Content } 
-	$vpcid = Invoke-WebRequest -Uri  $metadata//$Interface//vpc-id | Select-Object Content | foreach { $_.Content } 
-	$routetableId = Get-EC2RouteTable -region $REGION -EndpointUrl $EC2ENDPOINT -Filter @{ Name='association.subnet-id'; Value=$subnetid } | Select-Object RouteTableId  | foreach { $_.RouteTableId } 
-    $service = "dynamodb"
-	$checkendpoint = Get-EC2VpcEndpoint -region $REGION -EndpointUrl $EC2ENDPOINT  -Filter @{ Name='vpc-id'; Value=$vpcid } ,@{Name="service-name";Value="com.amazonaws.$REGION.$service" } | Select-Object ServiceName
-	$vpcendpoint = Get-EC2VpcEndpoint -region $REGION -EndpointUrl $EC2ENDPOINT  -Filter @{ Name='vpc-id'; Value=$vpcid } ,@{Name="service-name";Value="com.amazonaws.$REGION.$service" } | Select-Object VpcEndpointId | foreach {  $_.VpcEndpointId }
-      if ($checkendpoint -eq $null)
-	  { LogWrite "creating $service VPC endpoint"
-	   New-EC2VpcEndpoint  -region $REGION -EndpointUrl $EC2ENDPOINT -ServiceName com.amazonaws.$REGION.$service -VpcId $vpcid  -RouteTableId $routetableid }
-	  else {
-	  $checkroutetable = Get-EC2VpcEndpoint -region $REGION -EndpointUrl $EC2ENDPOINT -Filter @{Name="service-name";Values="com.amazonaws.$REGION.$service"}  | select-object RouteTableIds | foreach {  $_.RouteTableIds } | Select-String $routetableid
-	   if ( $checkroutetable -eq $null)
-		 {
-		 Edit-EC2VpcEndpoint -region $REGION -EndpointUrl $EC2ENDPOINT -VpcEndpointId $vpcendpoint -AddRouteTableId $routetableid
-		 }
-	   else { LogWrite "no action required for $service" }
-	  }
+LogWrite "Creating VPC endpoints"
+$metadata = 'http://169.254.169.254/latest/meta-data/network/interfaces/macs' 
+$Interface = Invoke-WebRequest -Uri  $metadata// | Select-Object Content | foreach { $_.Content } 
+$subnetid = Invoke-WebRequest -Uri  $metadata//$Interface//subnet-id | Select-Object Content | foreach { $_.Content } 
+$vpcid = Invoke-WebRequest -Uri  $metadata//$Interface//vpc-id | Select-Object Content | foreach { $_.Content } 
+$routetableId = Get-EC2RouteTable -region $REGION -EndpointUrl $EC2ENDPOINT -Filter @{ Name='association.subnet-id'; Value=$subnetid } | Select-Object RouteTableId  | foreach { $_.RouteTableId } 
+$service = "dynamodb"
+$checkendpoint = Get-EC2VpcEndpoint -region $REGION -EndpointUrl $EC2ENDPOINT  -Filter @{ Name='vpc-id'; Value=$vpcid } ,@{Name="service-name";Value="com.amazonaws.$REGION.$service" } | Select-Object ServiceName
+$vpcendpoint = Get-EC2VpcEndpoint -region $REGION -EndpointUrl $EC2ENDPOINT  -Filter @{ Name='vpc-id'; Value=$vpcid } ,@{Name="service-name";Value="com.amazonaws.$REGION.$service" } | Select-Object VpcEndpointId | foreach {  $_.VpcEndpointId }
+
+if ($checkendpoint -eq $null)
+  { 
+  LogWrite "creating $service VPC endpoint"
+  New-EC2VpcEndpoint  -region $REGION -EndpointUrl $EC2ENDPOINT -ServiceName com.amazonaws.$REGION.$service -VpcId $vpcid  -RouteTableId $routetableid
+  }
+else
+  {
+   $checkroutetable = Get-EC2VpcEndpoint -region $REGION -EndpointUrl $EC2ENDPOINT -Filter @{Name="service-name";Values="com.amazonaws.$REGION.$service"}  | select-object RouteTableIds | foreach {  $_.RouteTableIds } | Select-String $routetableid
+   if ( $checkroutetable -eq $null)
+	 {
+	 Edit-EC2VpcEndpoint -region $REGION -EndpointUrl $EC2ENDPOINT -VpcEndpointId $vpcendpoint -AddRouteTableId $routetableid
+	 }
+   else { LogWrite "no action required for $service" }
+   }
 }
 
 ### Script entry point ### 
@@ -249,12 +251,12 @@ if ($? )
 else
 {
 LogWrite "Instance has no internet access. Will install packages from S3"
- if ((Get-Command aws -ErrorAction SilentlyContinue) -eq $null)
+if ((Get-Command aws -ErrorAction SilentlyContinue) -eq $null)
 	{
      Copy-S3Object -BucketName $S3BUCKET -KeyPrefix softwares  -Localfolder $env:USERPROFILE\Downloads\
 	 Copy-S3Object -BucketName $S3BUCKET -KeyPrefix /  -Localfolder $env:USERPROFILE\Downloads\
 	} 
- else
+else
     {
 	  aws s3 sync s3://$S3BUCKET/ $env:USERPROFILE\Downloads\ --region $REGION --exclude "*" --include "*.exe*" --include "*.msi*"  --only-show-errors --no-progress 2>&1
 	}
