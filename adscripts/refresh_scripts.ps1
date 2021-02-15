@@ -90,12 +90,14 @@ $last_update_time = aws dynamodb get-item --table-name $DDBTABLE --key '{\"INSTA
 if ($last_update_time -eq $null)
 {
  $start_date = $(date)
- $computers = Get-ADComputer -Filter 'whenCreated -le $start_date' -Properties whencreated , IPv4Address | Select Name , IPv4Address, whencreated
+ Import-Module ActiveDirectory
+ $computers = Get-ADComputer -Filter 'whenCreated -le $start_date' -Properties whencreated , IPv4Address -Credential $credential -Server $ad_domain_name -AuthType 0 | Select Name , IPv4Address, whencreated
 }
 else
 {
  $start_date = $last_update_time
- $computers = Get-ADComputer -Filter 'whenCreated -gt $start_date' -Properties whencreated , IPv4Address | Select Name , IPv4Address, whenCreated
+ Import-Module ActiveDirectory
+ $computers = Get-ADComputer -Filter 'whenCreated -gt $start_date' -Properties whencreated , IPv4Address -Credential $credential -Server $ad_domain_name -AuthType 0 | Select Name , IPv4Address, whenCreated
 }
 
 $secretvaluejson = Get-SECSecretValue -region $REGION -EndpointUrl $SECRETENDPOINT -SecretId $secrets_manager_secret_id
@@ -106,14 +108,15 @@ $username = $secretvalue.domain_user
 $ad_username = $ad_domain_name.ToUpper() + "\" + $username
 $credential = New-Object System.Management.Automation.PSCredential($ad_username, $ad_secret)
 
-Get-ADComputer -Filter 'whenCreated -le $start_date' -Properties IPv4Address -Credential $credential -Server $ad_domain_name -AuthType 0 | Select Name , IPv4Address , whenCreated | foreach {
-$hostname = $_.Name ; $IPv4 =  $_.IPv4Address ; $whencreatd = $_.whenCreated ;
+echo $computers | foreach {
+$hostname = $_.Name ; $IPv4 =  $_.IPv4Address ; $whencreated = $_.whenCreated ;
 $instanceid = ''
-$instanceid = aws ec2 describe-instances --region $REGION --endpoint-url $EC2_ENDPOINT_URL --filter Name=private-ip-address,Values=$IPv4 --query 'Reservations[].Instances[].InstanceId' --output text
+$instanceid = aws ec2 describe-instances --region $REGION  --filter Name=private-ip-address,Values=$IPv4 --query 'Reservations[].Instances[].InstanceId' --output text
 
-if ($hostname -or $IPv4)
+if ($hostname -or $IPv4 -and $instanceid)
   {
-   set_variables "$hostname" "$IPv4" "$instanceid" "$whencreatd"
+   #echo $hostname $IPv4 $whencreated
+   set_variables "$hostname" "$IPv4" "$instanceid" "$whencreated"
   }
 }
 
@@ -122,7 +125,6 @@ $param2 = @"
 "@
 aws dynamodb put-item --table-name $DDBTABLE --item $param2 --region $REGION
 LogWrite "Sync Dynamodb with AD computer objects: Script execution completed at $(date)"
-
 }
 
 function cleanup_tempfile_logs {
