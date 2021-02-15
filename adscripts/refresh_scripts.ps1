@@ -40,7 +40,6 @@ $checks3_worker_Script_change = aws s3 sync s3://$S3BUCKETNAME/config $CONFIG_DI
    aws s3 sync  s3://$S3BUCKETNAME/$S3PREFIX $WORKING_DIR --only-show-errors --no-progress 2>&1 | out-null
    git-bash.exe $WORKING_DIR\sqsworker.sh
   }
-  
 
 $checks3_config_update = aws s3 sync  s3://${S3BUCKETNAME}/config $CONFIG_DIR --dryrun
  if ($checks3_config_update)
@@ -57,8 +56,7 @@ $check_bash_process = Get-Process -Name bash 2>&1 | out-null
   if (!$?)
   {
     git-bash.exe $WORKING_DIR\sqsworker.sh
-  }
-   
+  } 
 }
 
 function sync_dynamodb_with_AD_computers  {
