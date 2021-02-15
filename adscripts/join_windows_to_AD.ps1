@@ -18,22 +18,23 @@ $SECRETENDPOINT = get-content  $CONFIG_DIR\\sqsworker.conf | convertfrom-Json | 
 
 try{
 
-	$secretvaluejson = Get-SECSecretValue -region $REGION -EndpointUrl $SECRETENDPOINT -SecretId $secrets_manager_secret_id
-	$secretvalue = $secretvaluejson.SecretString | ConvertFrom-Json
-	$ad_domain_name = $secretvalue.domain_name
-	$username = $secretvalue.domain_user
-	$ad_secret = $secretvalue.domain_password | ConvertTo-SecureString -AsPlainText -Force
-	$directory_ou = $secretvalue.directory_ou
-	$DNSIPS=([System.Net.DNS]::GetHostAddresses(${ad_domain_name})|Where-Object {$_.AddressFamily -eq "InterNetwork"}) | select-object IPAddressToString | foreach { $_.IPAddressToString }
-	$dns_IP1 = $DNSIPS[0]
-	$dns_IP2 = $DNSIPS[1]   
-	$rdp_password = $instance_password | ConvertTo-SecureString -AsPlainText -Force
+$secretvaluejson = Get-SECSecretValue -region $REGION -EndpointUrl $SECRETENDPOINT -SecretId $secrets_manager_secret_id
+$secretvalue = $secretvaluejson.SecretString | ConvertFrom-Json
+$ad_domain_name = $secretvalue.domain_name
+$username = $secretvalue.domain_user
+$ad_secret = $secretvalue.domain_password | ConvertTo-SecureString -AsPlainText -Force
+$directory_ou = $secretvalue.directory_ou
+$DNSIPS=([System.Net.DNS]::GetHostAddresses(${ad_domain_name})|Where-Object {$_.AddressFamily -eq "InterNetwork"}) | select-object IPAddressToString | foreach { $_.IPAddressToString }
+$dns_IP1 = $DNSIPS[0]
+$dns_IP2 = $DNSIPS[1]   
+$rdp_password = $instance_password | ConvertTo-SecureString -AsPlainText -Force
 
-	# Create a System.Management.Automation.PSCredential object
-	$rdp_credential = New-Object System.Management.Automation.PSCredential($instance_username, $rdp_password)
-	echo "invoking remote command on $privateip "
+# Create a System.Management.Automation.PSCredential object
+$rdp_credential = New-Object System.Management.Automation.PSCredential($instance_username, $rdp_password)
 
-	$command = (Invoke-Command -ComputerName $privateip -FilePath  $SCRIPT_DIR\\win_adjoin.ps1 -Credential $rdp_credential -Authentication Negotiate  -ArgumentList $ad_secret,$username,$ad_domain_name,$dns_IP1,$dns_IP2,$directory_ou)  *>&1 | Out-File "${LOG_DIR}\${instance_id}_log.log" -Encoding ASCII  -Append
+echo "invoking remote command on $privateip" | Out-File "${LOG_DIR}\${instance_id}_log.log" -Encoding ASCII  -Append
+
+$command = (Invoke-Command -ComputerName $privateip -FilePath  $SCRIPT_DIR\\win_adjoin.ps1 -Credential $rdp_credential -Authentication Negotiate  -ArgumentList $ad_secret,$username,$ad_domain_name,$dns_IP1,$dns_IP2,$directory_ou)  *>&1 | Out-File "${LOG_DIR}\${instance_id}_log.log" -Encoding ASCII  -Append
 }
 
 catch [System.Management.Automation.RuntimeException]{

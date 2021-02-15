@@ -1,7 +1,6 @@
 #!/bin/sh
-
+# script arguments 
 DOMAIN_USERNAME=$1
-#DOMAIN_PASSWORD=$2
 TEMPSTRING=$2
 DIRECTORY_NAME=$3
 DNS_IP_ADDRESS1=$4
@@ -13,9 +12,7 @@ LINUX_DISTRO=""
 REGION=""
 # https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html
 AWSCLI="/usr/local/bin/aws"
-# script arguments 
 INSTANCEID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-
 
 ##################################################
 ## Remove temp files #############################
@@ -363,7 +360,7 @@ setup_resolv_conf_and_dhclient_conf() {
 }
 
 ##################################################
-## Set PEER_DNS to yes ###########################
+########### Set PEER_DNS to yes ##################
 ##################################################
 set_peer_dns() {
     for f in $(ls /etc/sysconfig/network-scripts/ifcfg-*)
@@ -568,8 +565,6 @@ reconfigure_samba() {
     fi
 }
 
-
-
 ##################################################
 ## Main entry point ##############################
 ##################################################
@@ -592,7 +587,7 @@ fi
 
 REALM=$(echo "$DIRECTORY_NAME" | tr [a-z] [A-Z])
 
-#print_vars
+print_vars
 
 set_hostname
 configure_hosts_file
@@ -658,4 +653,3 @@ fi
 
 echo "Script execution completed"
 exit 0
-
