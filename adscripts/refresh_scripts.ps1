@@ -106,7 +106,6 @@ $username = $secretvalue.domain_user
 $ad_username = $ad_domain_name.ToUpper() + "\" + $username
 $credential = New-Object System.Management.Automation.PSCredential($ad_username, $ad_secret)
 
-
 Get-ADComputer -Filter 'whenCreated -le $start_date' -Properties IPv4Address -Credential $credential -Server $ad_domain_name -AuthType 0 | Select Name , IPv4Address , whenCreated | foreach {
 $hostname = $_.Name ; $IPv4 =  $_.IPv4Address ; $whencreatd = $_.whenCreated ;
 $instanceid = ''
@@ -133,9 +132,7 @@ function cleanup_tempfile_logs {
 try {
 LogWrite "refresh started at $(date)"
 sync_s3_scripts
-
 sync_dynamodb_with_AD_computers
-
 LogWrite "refresh completed at $(date)"
 cleanup_tempfile_logs
 exit 0
@@ -147,6 +144,5 @@ catch [Exception]{
 }
 finally {
 LogWrite $Error
-#rm $TEMP_DIR\\ddbsyntemp -Force 2>&1 | out-null
 $host.SetShouldExit(1)
 }

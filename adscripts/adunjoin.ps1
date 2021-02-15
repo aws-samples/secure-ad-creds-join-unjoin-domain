@@ -18,9 +18,9 @@ $MachineName = Get-ADComputer -filter "Name -eq '$instance_hostname'" -Credentia
 
 echo "Removing $MachineName computer from the AD domain"
 Remove-ADComputer -Identity $MachineName -Credential $credential -Server $ad_domain_name -Confirm:$false
-echo "Domain unjoin completed successfully for COMPUTER_NAME = $MachineName"
-        
+echo "Domain unjoin completed successfully for COMPUTER_NAME = $MachineName"       
 }
+
 catch [Exception]{
     Write-Host $_.Exception.ToString()
     Write-Host 'Command execution failed.'
