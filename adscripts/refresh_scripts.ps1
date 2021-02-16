@@ -61,6 +61,7 @@ $check_bash_process = Get-Process -Name bash 2>&1 | out-null
 
 function sync_dynamodb_with_AD_computers  {
 $computers = ''
+$counter = 0
 LogWrite "Sync Dynamodb with AD computer objects: Script execution started at $(date)"
 
 function set_variables ([string]$hostname, [string]$IPv4, [string]$instanceid, [string]$whencreated)
@@ -105,17 +106,20 @@ echo $computers | foreach {
 $hostname = $_.Name ; $IPv4 =  $_.IPv4Address ; $whencreated = $_.whenCreated ;
 $instanceid = ''
 $instanceid = aws ec2 describe-instances --region $REGION  --filter Name=private-ip-address,Values=$IPv4 --query 'Reservations[].Instances[].InstanceId' --output text
-
-if ($hostname -or $IPv4 -and $instanceid)
+if (!$IPv4) { $IPv4 = '' }
+if ($hostname -and $instanceid)
   {
+   $counter = $counter+1
    set_variables "$hostname" "$IPv4" "$instanceid" "$whencreated"
   }
 }
-
-$param2 = @"
+if ( $counter -gt 0)
+{
+$param3 = @"
 {\"WHENCREATED\": {\"S\": \"$(date)\"}, \"INSTANCEID\": {\"S\": \"DONOTDELETEME\"}}
 "@
-aws dynamodb put-item --table-name $DDBTABLE --item $param2 --region $REGION
+aws dynamodb put-item --table-name $DDBTABLE --item $param3 --region $REGION
+}
 LogWrite "Sync Dynamodb with AD computer objects: Script execution completed at $(date)"
 }
 
