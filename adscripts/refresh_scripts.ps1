@@ -99,7 +99,7 @@ else
 {
  $start_date = $last_update_time
  #Import-Module ActiveDirectory
- $computers = Get-ADComputer -Filter 'whenCreated -gt $start_date' -Properties whencreated , IPv4Address -Credential $credential -Server $ad_domain_name -AuthType 0 | Select Name , IPv4Address, whenCreated
+ $computers = Get-ADComputer -Filter 'modified -gt $start_date' -Properties whencreated , IPv4Address -Credential $credential -Server $ad_domain_name -AuthType 0 | Select Name , IPv4Address, whenCreated
 }
 
 echo $computers | foreach {
