@@ -5,7 +5,7 @@
 
 // Map display OS names to AMI name patterns
 var osNameToPattern = {
-	"Windows Server 2016 English Full-Base 64-bit": "Windows_Server-2016-English-Full-Base-2020*"
+	"Windows Server 2016 English Full-Base 64-bit": "Windows_Server-2016-English-Full-Base-2021*"
 };
 
 var aws = require("aws-sdk");

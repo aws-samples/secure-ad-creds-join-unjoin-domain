@@ -102,6 +102,14 @@ else
  $computers = Get-ADComputer -Filter 'modified -gt $start_date' -Properties whencreated , IPv4Address -Credential $credential -Server $ad_domain_name -AuthType 0 | Select Name , IPv4Address, whenCreated
 }
 
+if ($computers)
+{
+$param3 = @"
+{\"WHENCREATED\": {\"S\": \"$(date)\"}, \"INSTANCEID\": {\"S\": \"DONOTDELETEME\"}}
+"@
+aws dynamodb put-item --table-name $DDBTABLE --item $param3 --region $REGION
+}
+
 echo $computers | foreach {
 $hostname = $_.Name ; $IPv4 =  $_.IPv4Address ; $whencreated = $_.whenCreated ;
 $instanceid = ''
@@ -109,16 +117,9 @@ $instanceid = aws ec2 describe-instances --region $REGION  --filter Name=private
 if (!$IPv4) { $IPv4 = '' }
 if ($hostname -and $instanceid)
   {
-   $counter = $counter+1
+   #$counter = $counter+1
    set_variables "$hostname" "$IPv4" "$instanceid" "$whencreated"
   }
-}
-if ( $counter -gt 0)
-{
-$param3 = @"
-{\"WHENCREATED\": {\"S\": \"$(date)\"}, \"INSTANCEID\": {\"S\": \"DONOTDELETEME\"}}
-"@
-aws dynamodb put-item --table-name $DDBTABLE --item $param3 --region $REGION
 }
 LogWrite "Sync Dynamodb with AD computer objects: Script execution completed at $(date)"
 }
